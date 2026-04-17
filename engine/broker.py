@@ -10,6 +10,7 @@ class Position:
     stop: Optional[float] = None
     take: Optional[float] = None
     legs: int = 0
+    entry_ts: float = 0.0
 
     @property
     def is_open(self) -> bool:
@@ -59,7 +60,10 @@ class PaperAccount:
         if cost > self.cash or qty <= 0:
             return False
         self.cash -= cost
-        self.positions[symbol] = Position(symbol, qty, p, stop, take, legs=1)
+        import time as _t
+        self.positions[symbol] = Position(
+            symbol, qty, p, stop, take, legs=1, entry_ts=_t.time(),
+        )
         return True
 
     def add_long(self, symbol: str, price: float, qty: float, ts: str,

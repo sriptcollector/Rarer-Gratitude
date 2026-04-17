@@ -171,6 +171,15 @@ def main():
                 if closed:
                     closed.entry_ts = ts
                     db.insert_trade(conn, closed, explain_trade(strat.name, closed.side, closed.reason))
+                # Time-based exit: force-close positions older than MAX_HOLD_MINUTES
+                pos = acc.positions.get(sym)
+                if pos and pos.is_open and pos.entry_ts:
+                    age_min = (time.time() - pos.entry_ts) / 60.0
+                    if age_min >= config.MAX_HOLD_MINUTES and sym in prices:
+                        t = acc.close(sym, prices[sym], ts, reason="timeout")
+                        if t:
+                            t.entry_ts = ts
+                            db.insert_trade(conn, t, f"Time-based exit after {int(age_min)}min")
 
                 in_pos = bool(pos and pos.is_open)
                 try:

@@ -22,10 +22,13 @@ RSS_FEEDS = [
 ]
 
 SYMBOL_KEYWORDS = {
-    "BTC/USDT": ["bitcoin", "btc "],
-    "ETH/USDT": ["ethereum", "ether ", "eth "],
-    "SOL/USDT": ["solana", "sol "],
+    "BTC/USDT": ["bitcoin", "btc ", " btc"],
+    "ETH/USDT": ["ethereum", "ether ", "eth ", " eth"],
+    "SOL/USDT": ["solana", "sol ", " sol"],
     "XRP/USDT": ["xrp", "ripple"],
+    "DOGE/USDT": ["dogecoin", "doge"],
+    "LINK/USDT": ["chainlink", "link token", " link "],
+    "XMR/USDT": ["monero", "xmr"],
     "ALGO/USDT": ["algorand", "algo "],
     "CRV/USDT": ["curve finance", "crv "],
     "GRT/USDT": ["the graph", "grt "],
@@ -104,12 +107,9 @@ class NewsBot:
         self.account.peak = peak
         self.account.equity_curve.append((_now_iso(), config.STARTING_CASH))
         self.account.equity_curve.append((_now_iso(), self.account.equity))
-        try:
-            ids = self.conn.execute(
-                "SELECT id FROM news ORDER BY id DESC LIMIT 1000").fetchall()
-            self.seen = {r[0] for r in ids}
-        except Exception:
-            pass
+        # Don't rehydrate seen_ids from DB — that would skip headlines we failed
+        # to trade on (e.g. because prices weren't populated yet). Starting with
+        # an empty set means a fresh boot retries unresolved signals.
 
     def _fetch_feed(self, source: str, url: str) -> list:
         try:
@@ -209,33 +209,42 @@ class NewsBot:
         ts = _now_iso()
         prices = dict(self.prices)
         self._check_exits(prices, ts)
+        # If main loop hasn't populated prices yet, skip trading this cycle
+        # but don't mark any items as seen, so we retry them next cycle.
+        if not prices:
+            return
         new_items = [i for i in items if int(i.get("id") or 0) not in self.seen]
         new_items.sort(key=lambda x: int(x.get("published_on") or 0))
         for item in new_items:
             nid = int(item.get("id") or 0)
             if not nid:
                 continue
-            self.seen.add(nid)
             text = (item.get("title") or "") + " \n" + (item.get("body") or "")
             matched = _match_symbols(text, self.active)
             if not matched:
+                self.seen.add(nid)
                 self._store(item, 0, [], False)
                 continue
             score = _score(text)
             traded = False
+            prices_hit = False
             for sym in matched:
                 px = prices.get(sym)
                 if not px:
                     continue
+                prices_hit = True
                 pos = self.account.positions.get(sym)
                 in_pos = bool(pos and pos.is_open)
-                if score >= 2 and not in_pos:
+                if score >= 1 and not in_pos:
                     if self._open(sym, px, ts, item.get("title") or ""):
                         traded = True
-                elif score <= -2 and in_pos:
+                elif score <= -1 and in_pos:
                     self._close(sym, px, ts, "bearish news: " + (item.get("title") or "")[:160])
                     traded = True
-            self._store(item, score, matched, traded)
+            # Only mark seen if we actually had prices available to trade on.
+            if prices_hit:
+                self.seen.add(nid)
+                self._store(item, score, matched, traded)
         self.account.mark(prices, ts)
 
     def run(self, interval: int = 60) -> None:
