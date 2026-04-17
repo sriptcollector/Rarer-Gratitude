@@ -840,6 +840,7 @@ def api_health():
         "open_positions_live": _st.get("open_positions", 0),
         "strat_errors": dict(list((_st.get("strat_errors") or {}).items())[:10]),
         "strat_error_count": _st.get("strat_error_count", 0),
+        "action_tally": _st.get("action_tally", {}),
     })
 
 

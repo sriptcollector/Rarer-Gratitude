@@ -180,6 +180,8 @@ def main():
                     errs[strat.name[:60]] = f"{type(e).__name__}: {e}"[:160]
                     shared_state["strat_error_count"] = shared_state.get("strat_error_count", 0) + 1
                     continue
+                tally = shared_state.setdefault("action_tally", {"buy": 0, "sell": 0, "hold": 0})
+                tally[sig.action] = tally.get(sig.action, 0) + 1
 
                 px = float(df["close"].iloc[-1])
                 if sig.action == "buy" and not in_pos:
