@@ -12,6 +12,7 @@ from engine.data_feed import DataFeed
 from engine.broker import PaperAccount, Trade
 from engine.metrics import summarize
 from engine.newsbot import NewsBot
+from engine.state import state as shared_state
 from strategies.registry import build_all
 from strategies.explain import explain_trade
 from strategies import indicators as ind_mod
@@ -67,6 +68,7 @@ def main():
                 break
     log.info("Trading %d symbols: %s", len(symbols),
              ", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
+    shared_state["symbols"] = symbols
 
     strategies = build_all()
     log.info("Loaded %d strategies", len(strategies))
@@ -222,6 +224,9 @@ def main():
             log.warning("evolve error: %s", e)
 
         elapsed = time.time() - t0
+        shared_state["last_tick_ts"] = ts
+        shared_state["last_tick_ms"] = int(elapsed * 1000)
+        shared_state["open_positions"] = open_count
         sleep_s = max(1.0, config.POLL_SECONDS - elapsed)
         log.debug("tick %d done in %.1fs, sleeping %.1fs", tick, elapsed, sleep_s)
         time.sleep(sleep_s)

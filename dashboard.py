@@ -811,6 +811,7 @@ def api_symbols():
 
 @app.route("/api/health")
 def api_health():
+    from engine.state import state as _st
     conn = _conn()
     latest_metric_ts = conn.execute("SELECT MAX(ts) FROM metrics").fetchone()[0]
     latest_trade = conn.execute(
@@ -831,6 +832,10 @@ def api_health():
         "exchange": config.EXCHANGE,
         "timeframe": config.TIMEFRAME,
         "quote": config.QUOTE,
+        "active_symbols": _st.get("symbols", []),
+        "last_tick_ts": _st.get("last_tick_ts"),
+        "last_tick_ms": _st.get("last_tick_ms"),
+        "open_positions_live": _st.get("open_positions", 0),
     })
 
 
