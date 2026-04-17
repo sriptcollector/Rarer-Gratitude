@@ -148,6 +148,11 @@ HOME = BASE_CSS + """
   <div class="stat"><div class="k">Open Positions</div><div class="v pos" id="open">—</div></div>
   <div class="stat"><div class="k">Signals / tick</div><div class="v" id="sigs">—</div></div>
 </div>
+<div class="panel" style="margin-bottom:22px">
+  <div class="hd"><span>Fleet Equity — all strategies, cumulative</span><span class="mono dim" id="eqinfo">—</span></div>
+  <div class="bd" style="padding:16px"><canvas id="feq" style="max-height:220px"></canvas></div>
+</div>
+
 <div class="panel">
   <div class="hd"><span>Live Trades — last 10</span><a href="/trades" class="back">view all →</a></div>
   <table>
@@ -160,9 +165,10 @@ HOME = BASE_CSS + """
 </div>
 
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 """ + """
 <script>
-let lastTs=null; let lastTradeId=null;
+let lastTs=null; let lastTradeId=null; let fleetChart=null;
 const fmtP=x=>(x>=0?'+':'')+x.toFixed(3)+'%';
 const fmtM=x=>(x>=0?'+':'')+x.toFixed(2);
 const cls=x=>x>0?'pos':x<0?'neg':'dim';
@@ -171,10 +177,11 @@ const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&
 async function tick(){
   document.getElementById('clock').textContent=new Date().toLocaleTimeString();
   try {
-    const [m,t,h]=await Promise.all([
+    const [m,t,h,eq]=await Promise.all([
       fetch('/api/metrics').then(r=>r.json()),
       fetch('/api/trades?limit=10').then(r=>r.json()),
       fetch('/api/health').then(r=>r.json()),
+      fetch('/api/equity_curve').then(r=>r.json()),
     ]);
     const rows=m.strategies||[];
     document.getElementById('total').textContent=rows.length;
@@ -186,6 +193,22 @@ async function tick(){
     document.getElementById('open').textContent=h.open_positions_live??(m.open_positions??'—');
     const a=h.action_tally||{};
     document.getElementById('sigs').textContent=(a.buy||0)+' buy / '+(a.sell||0)+' sell';
+
+    // Fleet equity curve
+    const curve=(eq.curve||[]);
+    document.getElementById('eqinfo').textContent=curve.length+' snapshots';
+    if(curve.length>1){
+      const ctx=document.getElementById('feq');
+      const data={labels:curve.map(p=>p[0].slice(11,19)),
+        datasets:[{data:curve.map(p=>p[1]),borderColor:'#3fff7a',
+          backgroundColor:'rgba(63,255,122,.08)',borderWidth:1.5,fill:true,tension:.2,pointRadius:0}]};
+      const opts={responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#4fa968',maxTicksLimit:8},grid:{color:'#0f2415'}},
+                y:{ticks:{color:'#4fa968',callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'#0f2415'}}}};
+      if(fleetChart) fleetChart.destroy();
+      fleetChart=new Chart(ctx,{type:'line',data,options:opts});
+    }
 
     const tr=t.trades||[];
     const topId=tr[0]?tr[0].id:null;
@@ -814,6 +837,19 @@ def api_symbols():
     """).fetchall()
     conn.close()
     return jsonify({"symbols": [dict(r) for r in rows]})
+
+
+@app.route("/api/equity_curve")
+def api_equity_curve():
+    """Aggregate equity curve: sum of all strategy equities over time."""
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT ts, SUM(equity) as total_equity, COUNT(*) as n "
+        "FROM metrics GROUP BY ts ORDER BY ts"
+    ).fetchall()
+    conn.close()
+    points = [[r["ts"], r["total_equity"], r["n"]] for r in rows]
+    return jsonify({"curve": points})
 
 
 @app.route("/api/health")
