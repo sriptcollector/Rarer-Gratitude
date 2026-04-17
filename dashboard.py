@@ -824,4 +824,5 @@ def api_evolution():
 if __name__ == "__main__":
     os.makedirs(os.path.dirname(config.DB_PATH) or ".", exist_ok=True)
     sqlite3.connect(config.DB_PATH).close()
-    app.run(host="0.0.0.0", port=8080, debug=False)
+    port = int(os.getenv("PORT", "8080"))
+    app.run(host="0.0.0.0", port=port, debug=False)
