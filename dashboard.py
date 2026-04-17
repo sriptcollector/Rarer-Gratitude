@@ -144,8 +144,9 @@ HOME = BASE_CSS + """
   <div class="stat"><div class="k">Best Return</div><div class="v" id="best">—</div></div>
   <div class="stat"><div class="k">Median Return</div><div class="v" id="med">—</div></div>
   <div class="stat"><div class="k">Strategies</div><div class="v" id="total">—</div></div>
-  <div class="stat"><div class="k">Total Trades</div><div class="v" id="tcount">—</div></div>
-  <div class="stat"><div class="k">Open Positions</div><div class="v" id="open">—</div></div>
+  <div class="stat"><div class="k">Closed Trades</div><div class="v" id="tcount">—</div></div>
+  <div class="stat"><div class="k">Open Positions</div><div class="v pos" id="open">—</div></div>
+  <div class="stat"><div class="k">Signals / tick</div><div class="v" id="sigs">—</div></div>
 </div>
 <div class="panel">
   <div class="hd"><span>Live Trades — last 10</span><a href="/trades" class="back">view all →</a></div>
@@ -170,7 +171,11 @@ const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&
 async function tick(){
   document.getElementById('clock').textContent=new Date().toLocaleTimeString();
   try {
-    const [m,t]=await Promise.all([fetch('/api/metrics').then(r=>r.json()),fetch('/api/trades?limit=10').then(r=>r.json())]);
+    const [m,t,h]=await Promise.all([
+      fetch('/api/metrics').then(r=>r.json()),
+      fetch('/api/trades?limit=10').then(r=>r.json()),
+      fetch('/api/health').then(r=>r.json()),
+    ]);
     const rows=m.strategies||[];
     document.getElementById('total').textContent=rows.length;
     document.getElementById('tcount').textContent=t.total||0;
@@ -178,7 +183,9 @@ async function tick(){
     const sorted=rows.map(r=>r.return_pct).sort((a,b)=>a-b);
     const med=sorted.length?sorted[Math.floor(sorted.length/2)]:0;
     document.getElementById('med').innerHTML=rows.length?`<span class="${cls(med)}">${fmtP(med)}</span>`:'—';
-    document.getElementById('open').textContent=m.open_positions??'—';
+    document.getElementById('open').textContent=h.open_positions_live??(m.open_positions??'—');
+    const a=h.action_tally||{};
+    document.getElementById('sigs').textContent=(a.buy||0)+' buy / '+(a.sell||0)+' sell';
 
     const tr=t.trades||[];
     const topId=tr[0]?tr[0].id:null;
