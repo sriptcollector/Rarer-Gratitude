@@ -13,5 +13,7 @@ FEE_BPS = float(os.getenv("FEE_BPS", "10"))
 SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "25"))
 WARMUP_BARS = int(os.getenv("WARMUP_BARS", "200"))
-DB_PATH = os.getenv("DB_PATH", "data/bot.db")
+# Use /data (Railway volume mount) when available, else local ./data
+_default_db = "/data/bot.db" if os.path.isdir("/data") else "data/bot.db"
+DB_PATH = os.getenv("DB_PATH", _default_db)
 LOG_EVERY = int(os.getenv("LOG_EVERY", "10"))
