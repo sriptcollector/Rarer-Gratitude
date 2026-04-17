@@ -838,6 +838,8 @@ def api_health():
         "last_tick_ts": _st.get("last_tick_ts"),
         "last_tick_ms": _st.get("last_tick_ms"),
         "open_positions_live": _st.get("open_positions", 0),
+        "strat_errors": dict(list((_st.get("strat_errors") or {}).items())[:10]),
+        "strat_error_count": _st.get("strat_error_count", 0),
     })
 
 

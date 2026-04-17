@@ -176,7 +176,9 @@ def main():
                 try:
                     sig = strat.generate(df, in_pos)
                 except Exception as e:
-                    log.debug("strat %s err %s: %s", strat.name, sym, e)
+                    errs = shared_state.setdefault("strat_errors", {})
+                    errs[strat.name[:60]] = f"{type(e).__name__}: {e}"[:160]
+                    shared_state["strat_error_count"] = shared_state.get("strat_error_count", 0) + 1
                     continue
 
                 px = float(df["close"].iloc[-1])
