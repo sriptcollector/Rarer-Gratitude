@@ -1,0 +1,16 @@
+import os
+
+EXCHANGE = os.getenv("EXCHANGE", "binance")
+TIMEFRAME = os.getenv("TIMEFRAME", "1m")
+QUOTE = os.getenv("QUOTE", "USDT")
+MAX_SYMBOLS = int(os.getenv("MAX_SYMBOLS", "50"))
+MIN_VOL_USD = float(os.getenv("MIN_VOL_USD", "5_000_000"))
+STARTING_CASH = float(os.getenv("STARTING_CASH", "10000"))
+RISK_PCT = float(os.getenv("RISK_PCT", "0.04"))
+MAX_LEGS = int(os.getenv("MAX_LEGS", "3"))
+FEE_BPS = float(os.getenv("FEE_BPS", "10"))
+SLIPPAGE_BPS = float(os.getenv("SLIPPAGE_BPS", "5"))
+POLL_SECONDS = int(os.getenv("POLL_SECONDS", "25"))
+WARMUP_BARS = int(os.getenv("WARMUP_BARS", "200"))
+DB_PATH = os.getenv("DB_PATH", "data/bot.db")
+LOG_EVERY = int(os.getenv("LOG_EVERY", "10"))
