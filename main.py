@@ -144,13 +144,17 @@ def main():
                 log.warning("fetch %s failed: %s", sym, e)
                 return sym, None
 
+        bar_counts: dict[str, int] = {}
         for sym, df in fetch_pool.map(_fetch, symbols):
+            bar_counts[sym] = len(df) if df is not None else 0
             if df is None or len(df) < 50:
                 continue
             bars[sym] = df
             prices[sym] = float(df["close"].iloc[-1])
         shared_prices.clear()
         shared_prices.update(prices)
+        shared_state["bar_counts"] = bar_counts
+        shared_state["active_bar_symbols"] = list(bars.keys())
 
         ts = now_iso()
 

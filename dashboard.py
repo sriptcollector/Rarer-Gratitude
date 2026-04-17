@@ -833,6 +833,8 @@ def api_health():
         "timeframe": config.TIMEFRAME,
         "quote": config.QUOTE,
         "active_symbols": _st.get("symbols", []),
+        "bar_counts": _st.get("bar_counts", {}),
+        "active_bar_symbols": _st.get("active_bar_symbols", []),
         "last_tick_ts": _st.get("last_tick_ts"),
         "last_tick_ms": _st.get("last_tick_ms"),
         "open_positions_live": _st.get("open_positions", 0),
