@@ -809,6 +809,31 @@ def api_symbols():
     return jsonify({"symbols": [dict(r) for r in rows]})
 
 
+@app.route("/api/health")
+def api_health():
+    conn = _conn()
+    latest_metric_ts = conn.execute("SELECT MAX(ts) FROM metrics").fetchone()[0]
+    latest_trade = conn.execute(
+        "SELECT id, exit_ts, strategy FROM trades ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    trade_count = conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+    news_count = 0
+    try:
+        news_count = conn.execute("SELECT COUNT(*) FROM news").fetchone()[0]
+    except sqlite3.OperationalError:
+        pass
+    conn.close()
+    return jsonify({
+        "latest_metric_ts": latest_metric_ts,
+        "latest_trade": dict(latest_trade) if latest_trade else None,
+        "trade_count": trade_count,
+        "news_count": news_count,
+        "exchange": config.EXCHANGE,
+        "timeframe": config.TIMEFRAME,
+        "quote": config.QUOTE,
+    })
+
+
 @app.route("/api/evolution")
 def api_evolution():
     conn = _conn()

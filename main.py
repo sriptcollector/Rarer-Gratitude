@@ -50,12 +50,23 @@ def now_iso() -> str:
 
 
 def main():
-    log.info("Booting paper bot on %s %s", config.EXCHANGE, config.TIMEFRAME)
+    log.info("Booting paper bot on %s %s (quote=%s min_vol=%s)",
+             config.EXCHANGE, config.TIMEFRAME, config.QUOTE, config.MIN_VOL_USD)
     conn = db.init(config.DB_PATH)
     feed = DataFeed(config.EXCHANGE, config.TIMEFRAME)
 
     symbols = feed.top_symbols(config.QUOTE, config.MAX_SYMBOLS, config.MIN_VOL_USD)
-    log.info("Trading %d symbols: %s", len(symbols), ", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
+    if not symbols:
+        for alt_quote in ("USD", "USDC", "USDT"):
+            if alt_quote == config.QUOTE:
+                continue
+            symbols = feed.top_symbols(alt_quote, config.MAX_SYMBOLS, config.MIN_VOL_USD)
+            if symbols:
+                log.info("Fell back to quote=%s (original %s returned nothing)",
+                         alt_quote, config.QUOTE)
+                break
+    log.info("Trading %d symbols: %s", len(symbols),
+             ", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
 
     strategies = build_all()
     log.info("Loaded %d strategies", len(strategies))

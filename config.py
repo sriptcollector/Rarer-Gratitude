@@ -1,10 +1,10 @@
 import os
 
-EXCHANGE = os.getenv("EXCHANGE", "binance")
+EXCHANGE = os.getenv("EXCHANGE", "kraken")
 TIMEFRAME = os.getenv("TIMEFRAME", "1m")
 QUOTE = os.getenv("QUOTE", "USDT")
 MAX_SYMBOLS = int(os.getenv("MAX_SYMBOLS", "50"))
-MIN_VOL_USD = float(os.getenv("MIN_VOL_USD", "5_000_000"))
+MIN_VOL_USD = float(os.getenv("MIN_VOL_USD", "500000"))
 STARTING_CASH = float(os.getenv("STARTING_CASH", "10000"))
 RISK_PCT = float(os.getenv("RISK_PCT", "0.04"))
 MAX_LEGS = int(os.getenv("MAX_LEGS", "3"))
